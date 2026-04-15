@@ -18,55 +18,60 @@ With a box style::
 With file logging::
 
     setup_logging(file="app.log", file_level="WARNING")
+
+Named loggers::
+
+    setup_logging()
+    child = get_logger("myapp.db")  # inherits root handlers
 """
+
+from __future__ import annotations
 
 import logging
 import sys
-from typing import Literal, Optional
+from typing import Dict, Literal, Optional
 
-from .formatters import (
-    ColoredLogFormatter,
-    LongBoxedFormatter,
-    ShortDynamicBoxFormatter,
-    ShortFixedBoxFormatter,
-)
+from .colors import DEFAULT_LOG_COLORS
+from .formatters import ExtraFormat, LogFormatter
 from .handlers import CleanFileHandler
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "setup_logging",
-    "ColoredLogFormatter",
-    "ShortFixedBoxFormatter",
-    "ShortDynamicBoxFormatter",
-    "LongBoxedFormatter",
+    "get_logger",
+    "reset_logging",
+    "remove_logger",
+    "LogFormatter",
     "CleanFileHandler",
+    "DEFAULT_LOG_COLORS",
+    "ExtraFormat",
+    "__version__",
 ]
 
-# Type aliases for IDE autocomplete (ctrl+space shows all valid options).
 Style = Literal["short-fixed", "short-dynamic", "long-boxed"]
 Level = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
-# Default color scheme applied to each log level.
-DEFAULT_LOG_COLORS: dict[str, str] = {
-    "DEBUG": "cyan",
-    "INFO": "green",
-    "WARNING": "yellow",
-    "ERROR": "red",
-    "CRITICAL": "bold_red",
+_LEVEL_VALUES: Dict[str, int] = {
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "WARNING": logging.WARNING,
+    "ERROR": logging.ERROR,
+    "CRITICAL": logging.CRITICAL,
 }
 
-# Default format string used by all formatters.
-DEFAULT_FORMAT = (
-    "%(log_color)s%(levelname)-8s%(reset)s "
-    "%(asctime)s "
-    "%(blue)s[%(name)s]%(reset)s "
-    "%(cyan)s%(pathname)s:%(lineno)d%(reset)s - "
-    "%(message_log_color)s%(message)s%(reset)s"
-)
-
-# Default date format.
 DEFAULT_DATEFMT = "%Y-%m-%d %H:%M:%S"
+
+# Global logger registry keyed by name.
+_loggers: Dict[str, logging.Logger] = {}
+
+
+class _FastLogger(logging.Logger):
+    """Logger that optionally skips expensive caller-info stack-frame capture."""
+
+
+def _no_caller_info(self: logging.Logger, stack_info: bool = False, stacklevel: int = 1):
+    return "<unknown>", 0, "<unknown>", None
 
 
 def setup_logging(
@@ -75,10 +80,12 @@ def setup_logging(
     level: Level = "DEBUG",
     width: int = 100,
     datefmt: str = DEFAULT_DATEFMT,
-    log_colors: Optional[dict[str, str]] = None,
+    log_colors: Optional[Dict[str, str]] = None,
     file: Optional[str] = None,
     file_level: Optional[Level] = None,
     name: str = "",
+    extra_format: ExtraFormat = "inline",
+    capture_caller_info: bool = True,
 ) -> logging.Logger:
     """
     Configure logging with colors and optional box formatting in one call.
@@ -88,159 +95,218 @@ def setup_logging(
 
     Args:
         colored:
-            Enable colored output on the console. Set to ``False`` for
-            plain text console output (useful in CI or piped environments).
-            Defaults to ``True``.
+            Enable colored output on the console. Set to ``False`` for plain
+            text (useful in CI or piped environments). Default ``True``.
 
         style:
-            Box style for console output. Options:
+            Box style for console output. One of:
 
-            - ``None`` -- No box, just colored text (default).
-            - ``"short-fixed"`` -- Fixed-width box (left border only).
-            - ``"short-dynamic"`` -- Dynamic-width box (full border, left + right).
-            - ``"long-boxed"`` -- Word-wrapped box (left border), best for long messages.
+            - ``None`` -- No box, plain colored text (default).
+            - ``"short-fixed"`` -- Fixed-width left-border box.
+            - ``"short-dynamic"`` -- Auto-width full-border box.
+            - ``"long-boxed"`` -- Word-wrapped left-border box.
 
         level:
-            Minimum log level for the console handler. One of
-            ``"DEBUG"``, ``"INFO"``, ``"WARNING"``, ``"ERROR"``, ``"CRITICAL"``.
-            Defaults to ``"DEBUG"``.
+            Minimum log level for the console handler. Default ``"DEBUG"``.
 
         width:
-            Box width in characters. Only used when ``style`` is set to
-            ``"short-fixed"`` or ``"long-boxed"``. Ignored otherwise.
-            Defaults to ``100``.
+            Box width in characters. Only used for ``"short-fixed"`` and
+            ``"long-boxed"``. Default ``100``.
 
         datefmt:
-            Date/time format string (any valid ``strftime`` format).
-            Defaults to ``"%Y-%m-%d %H:%M:%S"``.
+            Date/time format string (``strftime`` syntax). Default
+            ``"%Y-%m-%d %H:%M:%S"``.
 
         log_colors:
-            Override the default color for each log level. Pass a dict mapping
-            level names to ``colorlog`` color strings. Example::
+            Override default colors for specific log levels. Example::
 
                 log_colors={"INFO": "bold_green", "ERROR": "bold_red,bg_white"}
 
-            See `colorlog docs <https://github.com/borntyping/python-colorlog>`_
-            for available colors. Defaults to the built-in color scheme.
-
         file:
-            Path to a log file (e.g. ``"app.log"``). When set, logs are also
-            written to this file with ANSI color codes stripped automatically.
-            Defaults to ``None`` (no file logging).
+            Path to a log file. ANSI codes are stripped automatically.
+            Default ``None``.
 
         file_level:
-            Minimum log level for the file handler. Allows you to keep verbose
-            console output while only writing important messages to disk.
-            Defaults to the same value as ``level`` if not specified.
+            Minimum log level for the file handler. Defaults to ``level``.
 
         name:
-            Logger name. Use ``""`` (empty string) for the root logger, or
-            pass a dotted name like ``"myapp.db"`` for a specific logger.
-            Defaults to ``""`` (root logger).
+            Logger name. ``""`` configures the root logger. Default ``""``.
+
+        extra_format:
+            How ``extra`` fields are rendered. One of:
+
+            - ``"inline"`` -- ``[key=value key2=value2]`` (default).
+            - ``"json"`` -- compact JSON ``{"key": "value"}``.
+            - ``"pretty"`` -- indented multi-line JSON.
+
+        capture_caller_info:
+            Capture the caller's file path and line number on each log call.
+            Disable for higher throughput in performance-critical code.
+            Default ``True``.
 
     Returns:
-        The configured ``logging.Logger`` instance.
+        The configured :class:`logging.Logger` instance.
 
-    Examples:
-
-        **Minimal setup** -- colored console, DEBUG level::
-
-            from crisplogs import setup_logging
-            setup_logging()
-
-        **Boxed logs** -- long-boxed style with wider width::
-
-            setup_logging(style="long-boxed", width=120)
-
-        **Production** -- no colors, WARNING+ to file::
-
-            setup_logging(colored=False, level="INFO", file="app.log", file_level="WARNING")
-
-        **Custom colors**::
-
-            setup_logging(log_colors={"INFO": "bold_green", "WARNING": "bold_yellow"})
+    Raises:
+        TypeError: If any argument has an invalid value.
     """
-    colors = {**DEFAULT_LOG_COLORS, **(log_colors or {})}
-    secondary = {"message": colors.copy()}
-
-    # Common kwargs for all colorlog-based formatters.
-    fmt_kwargs: dict = {
-        "fmt": DEFAULT_FORMAT,
-        "datefmt": datefmt,
-        "log_colors": colors,
-        "secondary_log_colors": secondary,
-        "style": "%",
-    }
-
-    # Pick the right formatter class based on colored + style.
-    if colored and style is None:
-        formatter = ColoredLogFormatter(**fmt_kwargs)
-
-    elif colored and style == "short-fixed":
-        formatter = ShortFixedBoxFormatter(**fmt_kwargs, width=width)
-
-    elif colored and style == "short-dynamic":
-        formatter = ShortDynamicBoxFormatter(**fmt_kwargs)
-
-    elif colored and style == "long-boxed":
-        formatter = LongBoxedFormatter(**fmt_kwargs, width=width)
-
-    elif not colored and style is None:
-        # Plain formatter, no colors, no box.
-        formatter = logging.Formatter(
-            fmt=(
-                "%(levelname)-8s %(asctime)s [%(name)s] "
-                "%(pathname)s:%(lineno)d - %(message)s"
-            ),
-            datefmt=datefmt,
+    # --- validation -------------------------------------------------------
+    if level not in _LEVEL_VALUES:
+        raise TypeError(
+            f'Invalid log level: "{level}". '
+            f'Expected one of: {", ".join(_LEVEL_VALUES)}'
         )
+    if file_level is not None and file_level not in _LEVEL_VALUES:
+        raise TypeError(
+            f'Invalid file_level: "{file_level}". '
+            f'Expected one of: {", ".join(_LEVEL_VALUES)}'
+        )
+    if not isinstance(width, int) or width <= 0:
+        raise TypeError(f"Invalid width: {width}. Must be a positive integer.")
+    if file is not None and (not isinstance(file, str) or not file):
+        raise TypeError("Invalid file path: must be a non-empty string.")
 
-    elif not colored and style is not None:
-        # Box style but no colors -- use the box formatter with a plain format string.
-        # We still use the colorlog formatter but with reset colors.
-        no_color = {k: "white" for k in colors}
-        no_color_kwargs: dict = {
-            "fmt": (
-                "%(levelname)-8s %(asctime)s [%(name)s] "
-                "%(pathname)s:%(lineno)d - %(message)s"
-            ),
-            "datefmt": datefmt,
-            "log_colors": no_color,
-            "secondary_log_colors": {"message": no_color},
-            "style": "%",
-        }
-        style_map = {
-            "short-fixed": ShortFixedBoxFormatter,
-            "short-dynamic": ShortDynamicBoxFormatter,
-            "long-boxed": LongBoxedFormatter,
-        }
-        cls = style_map[style]
-        if style in ("short-fixed", "long-boxed"):
-            formatter = cls(**no_color_kwargs, width=width)
-        else:
-            formatter = cls(**no_color_kwargs)
-    else:
-        # Fallback (should not happen with typed params).
-        formatter = logging.Formatter(datefmt=datefmt)
+    # --- formatter --------------------------------------------------------
+    colors = {**DEFAULT_LOG_COLORS, **(log_colors or {})}
 
-    # -- Console handler --
+    fmt_kwargs = dict(
+        log_colors=colors,
+        colored=colored,
+        extra_format=extra_format,
+        datefmt=datefmt,
+    )
+
+    style_to_opts = {
+        None: dict(box=False),
+        "short-fixed": dict(box=True, width=width),
+        "short-dynamic": dict(box=True, full_border=True, width="auto"),
+        "long-boxed": dict(box=True, word_wrap=True, width=width),
+    }
+    fmt_kwargs.update(style_to_opts[style])
+
+    if not colored and style is not None:
+        # Box but no colors: override all level colors to plain white.
+        fmt_kwargs["log_colors"] = {k: "white" for k in colors}
+        fmt_kwargs["colored"] = False
+
+    formatter = LogFormatter(**fmt_kwargs)
+
+    # --- logger -----------------------------------------------------------
+    # Clear any previous registration to avoid duplicate handlers.
+    if name in _loggers:
+        _loggers[name].handlers.clear()
+
+    # Temporarily switch logger class so our subclass is created.
+    prev_class = logging.getLoggerClass()
+    logging.setLoggerClass(_FastLogger)
+    logger = logging.getLogger(name)
+    logging.setLoggerClass(prev_class)
+
+    # If it was already instantiated as a plain Logger (e.g. root), cast attrs.
+    if not isinstance(logger, _FastLogger):
+        logger.__class__ = _FastLogger  # type: ignore[assignment]
+
+    if not capture_caller_info:
+        import types
+        logger.findCaller = types.MethodType(_no_caller_info, logger)  # type: ignore[method-assign]
+
+    logger.setLevel(logging.DEBUG)
+    logger.handlers.clear()
+    logger.propagate = False
+
+    # --- console handler --------------------------------------------------
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
-    console_handler.setLevel(getattr(logging, level))
-
-    # -- Configure logger --
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)  # Let handlers decide what to pass through.
-    logger.handlers.clear()  # Remove any existing handlers to avoid duplicates.
+    console_handler.setLevel(_LEVEL_VALUES[level])
     logger.addHandler(console_handler)
 
-    # -- File handler (optional) --
+    # --- file handler (optional) ------------------------------------------
     if file is not None:
         resolved_file_level = file_level or level
         file_handler = CleanFileHandler(file)
-        # File gets the same formatter (ANSI is stripped in the handler).
         file_handler.setFormatter(formatter)
-        file_handler.setLevel(getattr(logging, resolved_file_level))
+        file_handler.setLevel(_LEVEL_VALUES[resolved_file_level])
         logger.addHandler(file_handler)
 
+    _loggers[name] = logger
     return logger
+
+
+def get_logger(name: str = "") -> logging.Logger:
+    """
+    Retrieve a previously configured logger, or create one that inherits
+    the root logger's handlers.
+
+    Example::
+
+        setup_logging()                    # configure root
+        db = get_logger("myapp.db")        # inherits root handlers
+        db.info("Connected")
+
+    Args:
+        name: Logger name. ``""`` returns the root logger.
+
+    Returns:
+        The :class:`logging.Logger` instance.
+    """
+    if name in _loggers:
+        return _loggers[name]
+
+    # Inherit from root logger if available.
+    root = _loggers.get("")
+    if root:
+        child = logging.getLogger(name)
+        child.setLevel(root.level)
+        child.handlers.clear()
+        child.propagate = False
+        for handler in root.handlers:
+            child.addHandler(handler)
+        _loggers[name] = child
+        return child
+
+    # No root configured — return a bare logger (no output until configured).
+    logger = logging.getLogger(name)
+    _loggers[name] = logger
+    return logger
+
+
+def reset_logging() -> None:
+    """
+    Tear down all loggers, closing their handlers and clearing the registry.
+
+    Useful in tests or when reconfiguring logging at runtime::
+
+        reset_logging()
+        setup_logging(level="WARNING")  # start fresh
+    """
+    for logger in _loggers.values():
+        for handler in logger.handlers[:]:
+            try:
+                handler.close()
+            except Exception:
+                pass
+        logger.handlers.clear()
+    _loggers.clear()
+
+
+def remove_logger(name: str) -> bool:
+    """
+    Remove a single logger from the registry by name.
+
+    Args:
+        name: Logger name to remove.
+
+    Returns:
+        ``True`` if the logger existed and was removed, ``False`` otherwise.
+    """
+    logger = _loggers.get(name)
+    if logger is None:
+        return False
+    for handler in logger.handlers[:]:
+        try:
+            handler.close()
+        except Exception:
+            pass
+    logger.handlers.clear()
+    del _loggers[name]
+    return True
