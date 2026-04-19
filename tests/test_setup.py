@@ -105,23 +105,23 @@ class TestSetupLogging:
 
 class TestValidation:
     def test_invalid_level_raises(self):
-        with pytest.raises(TypeError, match="Invalid log level"):
+        with pytest.raises(ValueError, match="Invalid log level"):
             setup_logging(level="VERBOSE")  # type: ignore
 
     def test_invalid_file_level_raises(self):
-        with pytest.raises(TypeError, match="Invalid file_level"):
+        with pytest.raises(ValueError, match="Invalid file_level"):
             setup_logging(file_level="VERBOSE")  # type: ignore
 
     def test_invalid_width_raises(self):
-        with pytest.raises(TypeError, match="Invalid width"):
+        with pytest.raises(ValueError, match="Invalid width"):
             setup_logging(width=0)
 
     def test_negative_width_raises(self):
-        with pytest.raises(TypeError, match="Invalid width"):
+        with pytest.raises(ValueError, match="Invalid width"):
             setup_logging(width=-1)
 
     def test_empty_file_path_raises(self):
-        with pytest.raises(TypeError, match="Invalid file path"):
+        with pytest.raises(ValueError, match="Invalid file path"):
             setup_logging(file="")
 
 

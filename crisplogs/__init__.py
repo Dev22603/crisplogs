@@ -148,23 +148,23 @@ def setup_logging(
         The configured :class:`logging.Logger` instance.
 
     Raises:
-        TypeError: If any argument has an invalid value.
+        ValueError: If any argument has an invalid value.
     """
     # --- validation -------------------------------------------------------
     if level not in _LEVEL_VALUES:
-        raise TypeError(
+        raise ValueError(
             f'Invalid log level: "{level}". '
             f'Expected one of: {", ".join(_LEVEL_VALUES)}'
         )
     if file_level is not None and file_level not in _LEVEL_VALUES:
-        raise TypeError(
+        raise ValueError(
             f'Invalid file_level: "{file_level}". '
             f'Expected one of: {", ".join(_LEVEL_VALUES)}'
         )
     if not isinstance(width, int) or width <= 0:
-        raise TypeError(f"Invalid width: {width}. Must be a positive integer.")
+        raise ValueError(f"Invalid width: {width}. Must be a positive integer.")
     if file is not None and (not isinstance(file, str) or not file):
-        raise TypeError("Invalid file path: must be a non-empty string.")
+        raise ValueError("Invalid file path: must be a non-empty string.")
 
     # --- formatter --------------------------------------------------------
     colors = {**DEFAULT_LOG_COLORS, **(log_colors or {})}

@@ -16,6 +16,15 @@ from .utils import strip_ansi, word_wrap
 
 ExtraFormat = Literal["inline", "json", "pretty"]
 
+# Box-drawing characters as constants so f-string expressions stay backslash-free
+# (backslashes in f-string expressions are a SyntaxError on Python 3.8–3.11).
+_TL = "\u250c"  # ┌
+_TR = "\u2510"  # ┐
+_BL = "\u2514"  # └
+_BR = "\u2518"  # ┘
+_H  = "\u2500"  # ─
+_V  = "\u2502"  # │
+
 
 class LogFormatter(logging.Formatter):
     """
@@ -187,16 +196,16 @@ class LogFormatter(logging.Formatter):
             content_lines = lines
 
         if self._full_border:
-            top = f"\u250c{'\u2500' * (w + 2)}\u2510"
-            bottom = f"\u2514{'\u2500' * (w + 2)}\u2518"
-            rows = [f"\u2502 {self._pad_visual(l, w)} \u2502" for l in content_lines]
+            top = _TL + _H * (w + 2) + _TR
+            bottom = _BL + _H * (w + 2) + _BR
+            rows = [f"{_V} {self._pad_visual(line, w)} {_V}" for line in content_lines]
             return "\n".join([top, *rows, bottom])
 
         # Left-border only.
-        top = f"\u250c{'\u2500' * (w + 2)}"
-        bottom = f"\u2514{'\u2500' * (w + 2)}"
+        top = _TL + _H * (w + 2)
+        bottom = _BL + _H * (w + 2)
         if self._word_wrap:
-            rows = [f"\u2502 {l}" for l in content_lines]
+            rows = [f"{_V} {line}" for line in content_lines]
         else:
-            rows = [f"\u2502 {self._pad_visual(l, w)} " for l in content_lines]
+            rows = [f"{_V} {self._pad_visual(line, w)} " for line in content_lines]
         return "\n".join([top, *rows, bottom])
