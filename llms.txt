@@ -1,0 +1,43 @@
+# crisplogs
+
+> Beautiful, colored, and boxed terminal logging for Python. Single function
+> call configures a `logging.Logger` with colors, structured-data formatting,
+> box decorations, and ANSI-stripped file output. Zero runtime dependencies,
+> Python 3.8+.
+
+## Docs
+
+- [README](README.md): install, quick start, output styles, options table,
+  structured data, file logging, named loggers, advanced usage, API reference.
+- [AGENTS.md](AGENTS.md): canonical imports, antipatterns, color-string
+  grammar, exception-handling patterns. Read this first if generating code.
+- [CHANGELOG](CHANGELOG.md): version history (Keep a Changelog format).
+
+## Source
+
+- [`crisplogs/__init__.py`](crisplogs/__init__.py): `setup_logging`,
+  `get_logger`, `reset_logging`, `remove_logger`. Public API entry point.
+- [`crisplogs/types.py`](crisplogs/types.py): `Level`, `Style`,
+  `ExtraFormat`, `Width`, `LogColors` type aliases.
+- [`crisplogs/exceptions.py`](crisplogs/exceptions.py): typed exception
+  hierarchy (`CrisplogsError`, `InvalidLevelError`, etc.).
+- [`crisplogs/formatters.py`](crisplogs/formatters.py): `LogFormatter`
+  covering all output styles via constructor options.
+- [`crisplogs/handlers.py`](crisplogs/handlers.py): `CleanFileHandler` that
+  strips ANSI codes before writing.
+- [`crisplogs/colors.py`](crisplogs/colors.py): `parse_color_string` and
+  `DEFAULT_LOG_COLORS`.
+- [`crisplogs/utils.py`](crisplogs/utils.py): `strip_ansi`, `word_wrap`.
+
+## Examples
+
+- [examples/basic.py](examples/basic.py): default colored output.
+- [examples/box_styles.py](examples/box_styles.py): all box styles.
+- [examples/custom_colors.py](examples/custom_colors.py): per-level colors.
+- [examples/extra_fields.py](examples/extra_fields.py): structured data.
+- [examples/file_logging.py](examples/file_logging.py): console + file.
+- [examples/level_filtering.py](examples/level_filtering.py): thresholds.
+- [examples/named_loggers.py](examples/named_loggers.py): named hierarchy.
+- [examples/plain_output.py](examples/plain_output.py): no colors.
+- [examples/custom_date_format.py](examples/custom_date_format.py).
+- [examples/demo.py](examples/demo.py): full feature walkthrough.

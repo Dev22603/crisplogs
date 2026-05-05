@@ -7,6 +7,11 @@ import logging
 import pytest
 
 from crisplogs import (
+    CrisplogsError,
+    InvalidExtraFormatError,
+    InvalidLevelError,
+    InvalidStyleError,
+    InvalidWidthError,
     get_logger,
     remove_logger,
     reset_logging,
@@ -43,22 +48,22 @@ class TestSetupLogging:
         logger = setup_logging(style="short-fixed")
         logger.info("boxed")
         captured = capsys.readouterr()
-        assert "┌" in captured.out
-        assert "└" in captured.out
+        assert "\u250c" in captured.out
+        assert "\u2514" in captured.out
 
     def test_style_short_dynamic(self, capsys):
         logger = setup_logging(style="short-dynamic")
         logger.info("dynamic")
         captured = capsys.readouterr()
-        assert "┌" in captured.out
-        assert "┐" in captured.out
+        assert "\u250c" in captured.out
+        assert "\u2510" in captured.out
 
     def test_style_long_boxed(self, capsys):
         logger = setup_logging(style="long-boxed")
         logger.info("long boxed")
         captured = capsys.readouterr()
-        assert "┌" in captured.out
-        assert "└" in captured.out
+        assert "\u250c" in captured.out
+        assert "\u2514" in captured.out
 
     def test_level_filtering(self, capsys):
         logger = setup_logging(level="WARNING")
@@ -105,23 +110,41 @@ class TestSetupLogging:
 
 class TestValidation:
     def test_invalid_level_raises(self):
-        with pytest.raises(ValueError, match="Invalid log level"):
-            setup_logging(level="VERBOSE")  # type: ignore
+        with pytest.raises(InvalidLevelError, match="level must be one of"):
+            setup_logging(level="VERBOSE")  # type: ignore[arg-type]
+
+    def test_invalid_level_is_value_error(self):
+        # Backward-compat: every typed error is also a ValueError.
+        with pytest.raises(ValueError):
+            setup_logging(level="VERBOSE")  # type: ignore[arg-type]
 
     def test_invalid_file_level_raises(self):
-        with pytest.raises(ValueError, match="Invalid file_level"):
-            setup_logging(file_level="VERBOSE")  # type: ignore
+        with pytest.raises(InvalidLevelError, match="file_level must be one of"):
+            setup_logging(file_level="VERBOSE")  # type: ignore[arg-type]
+
+    def test_invalid_style_raises(self):
+        with pytest.raises(InvalidStyleError, match="style must be one of"):
+            setup_logging(style="boxed")  # type: ignore[arg-type]
+
+    def test_invalid_extra_format_raises(self):
+        with pytest.raises(InvalidExtraFormatError, match="extra_format must be one of"):
+            setup_logging(extra_format="xml")  # type: ignore[arg-type]
 
     def test_invalid_width_raises(self):
-        with pytest.raises(ValueError, match="Invalid width"):
+        with pytest.raises(InvalidWidthError, match="width must be"):
             setup_logging(width=0)
 
     def test_negative_width_raises(self):
-        with pytest.raises(ValueError, match="Invalid width"):
+        with pytest.raises(InvalidWidthError, match="width must be"):
             setup_logging(width=-1)
 
+    def test_width_auto_accepted(self):
+        # "auto" is a valid width literal.
+        logger = setup_logging(width="auto", style="short-dynamic")
+        assert isinstance(logger, logging.Logger)
+
     def test_empty_file_path_raises(self):
-        with pytest.raises(ValueError, match="Invalid file path"):
+        with pytest.raises(CrisplogsError, match="file must be"):
             setup_logging(file="")
 
 

@@ -11,25 +11,26 @@ from .utils import strip_ansi
 
 
 class CleanFileHandler(logging.FileHandler):
-    """
-    A file handler that automatically strips ANSI color codes from log output.
+    """File handler that strips ANSI color codes before writing.
 
-    Logs written to files should be plain text for readability in editors,
-    log aggregators, and CI systems. This handler wraps the standard
-    ``logging.FileHandler`` and removes all ANSI escape sequences before writing.
+    Wraps :class:`logging.FileHandler` and removes every ANSI escape
+    sequence from the formatted message, so the same logger can emit
+    colored output to a console handler and clean text to a file
+    handler simultaneously.
 
     Args:
-        filename: Path to the log file (e.g. ``"app.log"``).
-        mode: File open mode. Defaults to ``"a"`` (append).
-        encoding: File encoding. Defaults to ``"utf-8"``.
-        *args: Passed to ``logging.FileHandler``.
-        **kwargs: Passed to ``logging.FileHandler``.
+        filename: Path to the log file.
+        mode: File open mode. Default ``"a"`` (append).
+        encoding: File encoding. Default ``"utf-8"``.
+        *args: Forwarded to :class:`logging.FileHandler`.
+        **kwargs: Forwarded to :class:`logging.FileHandler`.
 
-    Example::
-
-        handler = CleanFileHandler("app.log")
-        handler.setFormatter(some_formatter)
-        logger.addHandler(handler)
+    Example:
+        >>> import logging
+        >>> from crisplogs import CleanFileHandler, LogFormatter
+        >>> handler = CleanFileHandler("app.log")
+        >>> handler.setFormatter(LogFormatter(log_colors={}, colored=False))
+        >>> logging.getLogger().addHandler(handler)
     """
 
     def __init__(
@@ -41,6 +42,12 @@ class CleanFileHandler(logging.FileHandler):
         **kwargs: Any,
     ) -> None:
         super().__init__(filename, mode=mode, encoding=encoding, *args, **kwargs)
+
+    def __repr__(self) -> str:
+        return (
+            f"CleanFileHandler(filename={self.baseFilename!r}, "
+            f"level={logging.getLevelName(self.level)!r})"
+        )
 
     def emit(self, record: logging.LogRecord) -> None:
         """Format the record, strip ANSI codes, then write to file."""

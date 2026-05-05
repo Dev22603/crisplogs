@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "crisplogs"
-version = "0.2.0"
+version = "0.3.0"
 description = "Beautiful, colored, and boxed logging for Python."
 readme = "README.md"
 license = { text = "MIT" }
@@ -36,7 +36,8 @@ dev = ["pytest>=7.0"]
 Homepage = "https://github.com/dev22603/crisplogs"
 Repository = "https://github.com/dev22603/crisplogs"
 Issues = "https://github.com/dev22603/crisplogs/issues"
-Changelog = "https://github.com/dev22603/crisplogs/releases"
+Changelog = "https://github.com/dev22603/crisplogs/blob/main/CHANGELOG.md"
+"Release Notes" = "https://github.com/dev22603/crisplogs/releases"
 
 [tool.setuptools.packages.find]
 where = ["."]

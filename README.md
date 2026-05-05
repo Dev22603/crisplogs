@@ -12,6 +12,8 @@
 
 ---
 
+> **Note:** This package is in 0.x. Minor version bumps may include breaking changes. Pin to `crisplogs~=0.3.0` for stability until 1.0.0.
+
 One function call to get production-ready logs with colors, box decorations, structured data, and file output. Zero runtime dependencies.
 
 ```python
@@ -381,6 +383,14 @@ logger = setup_logging(name="myapp")
 logger.addHandler(handler)
 ```
 
+## Common Pitfalls
+
+- **Extras only render in default and `long-boxed` styles.** Short box styles drop extras for layout reasons.
+- **Calling `setup_logging` twice** replaces handlers for that logger name; call `reset_logging()` first if you mean to start completely fresh.
+- **Lowercase levels are rejected.** Use `"INFO"`, not `"info"`.
+- **`capture_caller_info` adds overhead.** Disable in tight loops.
+- **All `setup_logging` arguments are keyword-only.** Positional calls are a `TypeError`.
+
 ## API Reference
 
 ### Functions
@@ -422,6 +432,10 @@ python examples/plain_output.py       # no colors
 python examples/custom_date_format.py
 python examples/demo.py               # full feature walkthrough
 ```
+
+## For AI coding assistants
+
+See [`AGENTS.md`](./AGENTS.md) for canonical imports, antipatterns, and the full color-string grammar tailored for code-generating AI tools.
 
 ## License
 

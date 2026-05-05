@@ -2,35 +2,40 @@
 Formatter for crisplogs.
 
 A single :class:`LogFormatter` class covers all output styles via options,
-replacing the previous four separate formatter classes.
+replacing the previous separate formatter classes.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, Literal, Optional, Union
+from typing import Any, Dict, Optional
 
 from .colors import RESET, parse_color_string
+from .exceptions import InvalidExtraFormatError, InvalidWidthError
+from .types import ExtraFormat, Width
 from .utils import strip_ansi, word_wrap
 
-ExtraFormat = Literal["inline", "json", "pretty"]
+_VALID_EXTRA_FORMATS = ("inline", "json", "pretty")
 
 # Box-drawing characters as constants so f-string expressions stay backslash-free
-# (backslashes in f-string expressions are a SyntaxError on Python 3.8–3.11).
-_TL = "\u250c"  # ┌
-_TR = "\u2510"  # ┐
-_BL = "\u2514"  # └
-_BR = "\u2518"  # ┘
-_H  = "\u2500"  # ─
-_V  = "\u2502"  # │
+# (backslashes in f-string expressions are a SyntaxError on Python 3.8-3.11).
+_TL = "\u250c"  # top-left
+_TR = "\u2510"  # top-right
+_BL = "\u2514"  # bottom-left
+_BR = "\u2518"  # bottom-right
+_H = "\u2500"   # horizontal
+_V = "\u2502"   # vertical
 
 
 class LogFormatter(logging.Formatter):
-    """
-    Single configurable log formatter.
+    """Single configurable log formatter covering all crisplogs output styles.
 
-    Covers all output styles through constructor options:
+    Most users should call :func:`crisplogs.setup_logging` instead and let
+    it construct a ``LogFormatter`` for them. Use this class directly only
+    when integrating with custom handlers.
+
+    The four canonical configurations are:
 
     +--------------------------+--------------------------------------------------+
     | Style                    | Options                                          |
@@ -45,17 +50,41 @@ class LogFormatter(logging.Formatter):
     +--------------------------+--------------------------------------------------+
 
     Args:
-        log_colors: Mapping of level names to colorlog-style color strings.
-        colored: Whether to apply ANSI colors. Default ``True``.
-        extra_format: How extra fields are rendered (``"inline"``,
-            ``"json"``, ``"pretty"``). Default ``"inline"``.
-        box: Draw a box around each log entry. Default ``False``.
-        full_border: Use full border (top-right + bottom-right corners)
-            instead of left-border only. Default ``False``.
+        log_colors: Mapping of level names (``"DEBUG"`` ... ``"CRITICAL"``)
+            to color strings following the ``[modifier_]color[,bg_color]``
+            grammar (see :func:`crisplogs.setup_logging` for the full
+            grammar and examples).
+        colored: Apply ANSI colors. Default ``True``.
+        extra_format: How ``extra={...}`` fields are rendered:
+            ``"inline"``, ``"json"``, or ``"pretty"``. Default ``"inline"``.
+        box: Draw a box around each entry. Default ``False``.
+        full_border: With ``box=True``, draw the right border (and
+            corners) too. Default ``False`` (left-border only).
         width: Box width in characters, or ``"auto"`` to size to the
             longest line. Default ``100``.
         word_wrap: Word-wrap long lines within the box. Default ``False``.
-        datefmt: Date/time format string. Default ``"%Y-%m-%d %H:%M:%S"``.
+        datefmt: ``strftime``-style date format. Default
+            ``"%Y-%m-%d %H:%M:%S"``.
+
+    Raises:
+        InvalidExtraFormatError: If ``extra_format`` is not one of
+            ``"inline"``, ``"json"``, ``"pretty"``.
+        InvalidWidthError: If ``width`` is not a positive int or
+            ``"auto"``.
+
+    Note:
+        ``LogFormatter`` is not a supported subclassing point. Configure
+        behavior via constructor options instead.
+
+    Example:
+        >>> from crisplogs import LogFormatter
+        >>> fmt = LogFormatter(
+        ...     log_colors={"INFO": "bold_green"},
+        ...     colored=True,
+        ...     box=True,
+        ...     full_border=True,
+        ...     width="auto",
+        ... )
     """
 
     def __init__(
@@ -66,20 +95,39 @@ class LogFormatter(logging.Formatter):
         extra_format: ExtraFormat = "inline",
         box: bool = False,
         full_border: bool = False,
-        width: Union[int, str] = 100,
+        width: Width = 100,
         word_wrap: bool = False,
         datefmt: str = "%Y-%m-%d %H:%M:%S",
     ) -> None:
+        if extra_format not in _VALID_EXTRA_FORMATS:
+            raise InvalidExtraFormatError(
+                f"extra_format must be one of "
+                f"{', '.join(repr(s) for s in _VALID_EXTRA_FORMATS)}; "
+                f"got {extra_format!r}"
+            )
+        if width != "auto" and (
+            not isinstance(width, int) or isinstance(width, bool) or width <= 0
+        ):
+            raise InvalidWidthError(
+                f"width must be a positive int or 'auto'; got {width!r}"
+            )
+
         super().__init__(datefmt=datefmt)
         self._log_colors = log_colors
         self._colored = colored
         self._extra_format: ExtraFormat = extra_format
         self._box = box
         self._full_border = full_border
-        self._width = width
+        self._width: Width = width
         self._word_wrap = word_wrap
 
-    # -- helpers ----------------------------------------------------------
+    def __repr__(self) -> str:
+        return (
+            f"LogFormatter(colored={self._colored!r}, box={self._box!r}, "
+            f"full_border={self._full_border!r}, width={self._width!r}, "
+            f"word_wrap={self._word_wrap!r}, extra_format={self._extra_format!r}, "
+            f"datefmt={self.datefmt!r})"
+        )
 
     @staticmethod
     def _safe_stringify(obj: Any, indent: Optional[int] = None) -> str:
@@ -100,7 +148,6 @@ class LogFormatter(logging.Formatter):
         if fmt == "pretty":
             return f"\n{self._safe_stringify(extra, indent=2)}"
 
-        # inline: [key=value key2=value2]
         parts: list[str] = []
         for k, v in extra.items():
             if v is None or isinstance(v, (str, int, float, bool)):
@@ -112,8 +159,6 @@ class LogFormatter(logging.Formatter):
     @staticmethod
     def _pad_visual(text: str, width: int) -> str:
         return text + " " * max(0, width - len(strip_ansi(text)))
-
-    # -- core format ------------------------------------------------------
 
     def _format_base(self, record: logging.LogRecord) -> str:
         """Build the base line (no box, no extras)."""
@@ -145,8 +190,7 @@ class LogFormatter(logging.Formatter):
             f"{message}"
         )
 
-    # Built-in LogRecord attributes that should NOT be treated as extras.
-    _RESERVED: frozenset[str] = frozenset({
+    _RESERVED: frozenset = frozenset({
         "name", "msg", "args", "levelname", "levelno", "pathname",
         "filename", "module", "exc_info", "exc_text", "stack_info",
         "lineno", "funcName", "created", "msecs", "relativeCreated",
@@ -161,16 +205,12 @@ class LogFormatter(logging.Formatter):
         }
         return extras if extras else None
 
-    # -- public -----------------------------------------------------------
-
     def format(self, record: logging.LogRecord) -> str:  # noqa: A003
-        # Let the base class populate record.message and record.asctime.
         record.message = record.getMessage()
         record.asctime = self.formatTime(record, self.datefmt)
 
         message = self._format_base(record)
 
-        # Extras are appended for plain output and word-wrapped boxes.
         extra = self._extract_extra(record)
         if not self._box or self._word_wrap:
             message += self._serialize_extra(extra)
@@ -180,13 +220,11 @@ class LogFormatter(logging.Formatter):
 
         lines = message.split("\n")
 
-        # Determine effective box width.
         if self._width == "auto":
             w = max((len(strip_ansi(line)) for line in lines), default=0)
         else:
             w = int(self._width)
 
-        # Word-wrap if requested.
         if self._word_wrap:
             wrapped: list[str] = []
             for line in lines:
@@ -201,7 +239,6 @@ class LogFormatter(logging.Formatter):
             rows = [f"{_V} {self._pad_visual(line, w)} {_V}" for line in content_lines]
             return "\n".join([top, *rows, bottom])
 
-        # Left-border only.
         top = _TL + _H * (w + 2)
         bottom = _BL + _H * (w + 2)
         if self._word_wrap:
