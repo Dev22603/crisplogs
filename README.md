@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/crisplogs/"><img src="https://img.shields.io/badge/pypi-v0.3.0-blue.svg" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/crisplogs/"><img src="https://img.shields.io/pypi/v/crisplogs.svg" alt="PyPI version"></a>
   <a href="https://github.com/dev22603/crisplogs/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="license"></a>
   <img src="https://img.shields.io/badge/python-%3E%3D3.8-brightgreen.svg" alt="python version">
   <img src="https://img.shields.io/badge/dependencies-0-green.svg" alt="zero dependencies">
