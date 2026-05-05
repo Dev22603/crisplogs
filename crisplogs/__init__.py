@@ -41,7 +41,7 @@ from .formatters import LogFormatter
 from .handlers import CleanFileHandler
 from .types import ExtraFormat, Level, LogColors, Style, Width
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 __all__ = [
     "CleanFileHandler",
