@@ -49,15 +49,17 @@ def word_wrap(text: str, width: int) -> list[str]:
 
     lines: list[str] = []
     current_line = words[0]
+    vis_current = len(strip_ansi(current_line))
 
     for word in words[1:]:
-        vis_current = len(strip_ansi(current_line))
         vis_word = len(strip_ansi(word))
         if vis_current + 1 + vis_word <= width:
             current_line += f" {word}"
+            vis_current += 1 + vis_word
         else:
             lines.append(current_line)
             current_line = word
+            vis_current = vis_word
 
     lines.append(current_line)
     return lines
