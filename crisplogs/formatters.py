@@ -133,7 +133,7 @@ class LogFormatter(logging.Formatter):
     def _safe_stringify(obj: Any, indent: Optional[int] = None) -> str:
         try:
             return json.dumps(obj, indent=indent, default=str)
-        except (TypeError, ValueError):
+        except Exception:
             return "[Circular]"
 
     def _serialize_extra(self, extra: Optional[Dict[str, Any]]) -> str:
