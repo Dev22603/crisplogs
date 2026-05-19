@@ -205,6 +205,34 @@ class LogFormatter(logging.Formatter):
         }
         return extras if extras else None
 
+    def _get_box_width(self, lines: list[str]) -> int:
+        if self._width == "auto":
+            return max((len(strip_ansi(line)) for line in lines), default=0)
+        return int(self._width)
+
+    def _apply_word_wrap(self, lines: list[str], w: int) -> list[str]:
+        if not self._word_wrap:
+            return lines
+        wrapped: list[str] = []
+        for line in lines:
+            wrapped.extend(word_wrap(line, w))
+        return wrapped
+
+    def _add_borders(self, content_lines: list[str], w: int) -> str:
+        if self._full_border:
+            top = _TL + _H * (w + 2) + _TR
+            bottom = _BL + _H * (w + 2) + _BR
+            rows = [f"{_V} {self._pad_visual(line, w)} {_V}" for line in content_lines]
+            return "\n".join([top, *rows, bottom])
+
+        top = _TL + _H * (w + 2)
+        bottom = _BL + _H * (w + 2)
+        if self._word_wrap:
+            rows = [f"{_V} {line}" for line in content_lines]
+        else:
+            rows = [f"{_V} {self._pad_visual(line, w)} " for line in content_lines]
+        return "\n".join([top, *rows, bottom])
+
     def format(self, record: logging.LogRecord) -> str:  # noqa: A003
         record.message = record.getMessage()
         record.asctime = self.formatTime(record, self.datefmt)
@@ -219,30 +247,6 @@ class LogFormatter(logging.Formatter):
             return message
 
         lines = message.split("\n")
-
-        if self._width == "auto":
-            w = max((len(strip_ansi(line)) for line in lines), default=0)
-        else:
-            w = int(self._width)
-
-        if self._word_wrap:
-            wrapped: list[str] = []
-            for line in lines:
-                wrapped.extend(word_wrap(line, w))
-            content_lines = wrapped
-        else:
-            content_lines = lines
-
-        if self._full_border:
-            top = _TL + _H * (w + 2) + _TR
-            bottom = _BL + _H * (w + 2) + _BR
-            rows = [f"{_V} {self._pad_visual(line, w)} {_V}" for line in content_lines]
-            return "\n".join([top, *rows, bottom])
-
-        top = _TL + _H * (w + 2)
-        bottom = _BL + _H * (w + 2)
-        if self._word_wrap:
-            rows = [f"{_V} {line}" for line in content_lines]
-        else:
-            rows = [f"{_V} {self._pad_visual(line, w)} " for line in content_lines]
-        return "\n".join([top, *rows, bottom])
+        w = self._get_box_width(lines)
+        content_lines = self._apply_word_wrap(lines, w)
+        return self._add_borders(content_lines, w)
