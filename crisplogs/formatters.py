@@ -121,6 +121,13 @@ class LogFormatter(logging.Formatter):
         self._width: Width = width
         self._word_wrap = word_wrap
 
+        self._level_colors: Dict[str, str] = {
+            level: parse_color_string(color) for level, color in log_colors.items()
+        }
+        self._default_level_color = parse_color_string("white")
+        self._color_blue = parse_color_string("blue")
+        self._color_cyan = parse_color_string("cyan")
+
     def __repr__(self) -> str:
         return (
             f"LogFormatter(colored={self._colored!r}, box={self._box!r}, "
@@ -170,10 +177,10 @@ class LogFormatter(logging.Formatter):
         message = record.getMessage()
 
         if self._colored:
-            lc = parse_color_string(self._log_colors.get(record.levelname, "white"))
-            blue = parse_color_string("blue")
-            cyan = parse_color_string("cyan")
-            mc = parse_color_string(self._log_colors.get(record.levelname, "white"))
+            lc = self._level_colors.get(record.levelname, self._default_level_color)
+            blue = self._color_blue
+            cyan = self._color_cyan
+            mc = self._level_colors.get(record.levelname, self._default_level_color)
 
             return (
                 f"{lc}{level_name}{RESET} "
