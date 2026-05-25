@@ -85,8 +85,104 @@ class _FastLogger(logging.Logger):
     """Logger that optionally skips expensive caller-info stack-frame capture."""
 
 
-def _no_caller_info(self: logging.Logger, stack_info: bool = False, stacklevel: int = 1):
+def _no_caller_info(
+    self: logging.Logger, stack_info: bool = False, stacklevel: int = 1
+):
     return "<unknown>", 0, "<unknown>", None
+
+
+def _create_formatter(
+    colored: bool,
+    style: Optional[Style],
+    width: Width,
+    datefmt: str,
+    log_colors: Optional[LogColors],
+    extra_format: ExtraFormat,
+) -> LogFormatter:
+    colors = {**DEFAULT_LOG_COLORS, **(log_colors or {})}
+
+    fmt_kwargs: Dict[str, object] = dict(
+        log_colors=colors,
+        colored=colored,
+        extra_format=extra_format,
+        datefmt=datefmt,
+    )
+
+    style_to_opts: Dict[Optional[str], Dict[str, object]] = {
+        None: dict(box=False),
+        "short-fixed": dict(box=True, width=width),
+        "short-dynamic": dict(box=True, full_border=True, width="auto"),
+        "long-boxed": dict(box=True, word_wrap=True, width=width),
+    }
+    fmt_kwargs.update(style_to_opts[style])
+
+    if not colored and style is not None:
+        fmt_kwargs["log_colors"] = {k: "white" for k in colors}
+        fmt_kwargs["colored"] = False
+
+    return LogFormatter(**fmt_kwargs)  # type: ignore[arg-type]
+
+
+def _configure_logger_instance(name: str, capture_caller_info: bool) -> logging.Logger:
+    if name in _loggers:
+        _loggers[name].handlers.clear()
+
+    prev_class = logging.getLoggerClass()
+    logging.setLoggerClass(_FastLogger)
+    logger = logging.getLogger(name)
+    logging.setLoggerClass(prev_class)
+
+    if not isinstance(logger, _FastLogger):
+        logger.__class__ = _FastLogger  # type: ignore[assignment]
+
+    if not capture_caller_info:
+        import types
+
+        logger.findCaller = types.MethodType(_no_caller_info, logger)  # type: ignore[method-assign]
+
+    logger.setLevel(logging.DEBUG)
+    logger.handlers.clear()
+    logger.propagate = False
+    return logger
+
+
+def _validate_setup_args(
+    level: Level,
+    file_level: Optional[Level],
+    style: Optional[Style],
+    extra_format: ExtraFormat,
+    width: Width,
+    file: Optional[str],
+) -> None:
+    if level not in _LEVEL_VALUES:
+        raise InvalidLevelError(
+            f"level must be one of {', '.join(repr(k) for k in _LEVEL_VALUES)}; "
+            f"got {level!r}"
+        )
+    if file_level is not None and file_level not in _LEVEL_VALUES:
+        raise InvalidLevelError(
+            f"file_level must be one of {', '.join(repr(k) for k in _LEVEL_VALUES)} "
+            f"or None; got {file_level!r}"
+        )
+    if style is not None and style not in _VALID_STYLES:
+        raise InvalidStyleError(
+            f"style must be one of {', '.join(repr(s) for s in _VALID_STYLES)} "
+            f"or None; got {style!r}"
+        )
+    if extra_format not in _VALID_EXTRA_FORMATS:
+        raise InvalidExtraFormatError(
+            f"extra_format must be one of "
+            f"{', '.join(repr(s) for s in _VALID_EXTRA_FORMATS)}; "
+            f"got {extra_format!r}"
+        )
+    if width != "auto" and (
+        not isinstance(width, int) or isinstance(width, bool) or width <= 0
+    ):
+        raise InvalidWidthError(
+            f"width must be a positive int or 'auto'; got {width!r}"
+        )
+    if file is not None and (not isinstance(file, str) or not file):
+        raise CrisplogsError("file must be a non-empty string or None")
 
 
 def setup_logging(
@@ -163,75 +259,27 @@ def setup_logging(
         >>> logger = setup_logging(level="INFO", style="long-boxed")
         >>> logger.info("Server started", extra={"port": 8000})
     """
-    if level not in _LEVEL_VALUES:
-        raise InvalidLevelError(
-            f"level must be one of {', '.join(repr(k) for k in _LEVEL_VALUES)}; "
-            f"got {level!r}"
-        )
-    if file_level is not None and file_level not in _LEVEL_VALUES:
-        raise InvalidLevelError(
-            f"file_level must be one of {', '.join(repr(k) for k in _LEVEL_VALUES)} "
-            f"or None; got {file_level!r}"
-        )
-    if style is not None and style not in _VALID_STYLES:
-        raise InvalidStyleError(
-            f"style must be one of {', '.join(repr(s) for s in _VALID_STYLES)} "
-            f"or None; got {style!r}"
-        )
-    if extra_format not in _VALID_EXTRA_FORMATS:
-        raise InvalidExtraFormatError(
-            f"extra_format must be one of "
-            f"{', '.join(repr(s) for s in _VALID_EXTRA_FORMATS)}; "
-            f"got {extra_format!r}"
-        )
-    if width != "auto" and (not isinstance(width, int) or isinstance(width, bool) or width <= 0):
-        raise InvalidWidthError(
-            f"width must be a positive int or 'auto'; got {width!r}"
-        )
-    if file is not None and (not isinstance(file, str) or not file):
-        raise CrisplogsError("file must be a non-empty string or None")
-
-    colors = {**DEFAULT_LOG_COLORS, **(log_colors or {})}
-
-    fmt_kwargs: Dict[str, object] = dict(
-        log_colors=colors,
-        colored=colored,
+    _validate_setup_args(
+        level=level,
+        file_level=file_level,
+        style=style,
         extra_format=extra_format,
-        datefmt=datefmt,
+        width=width,
+        file=file,
     )
 
-    style_to_opts: Dict[Optional[str], Dict[str, object]] = {
-        None: dict(box=False),
-        "short-fixed": dict(box=True, width=width),
-        "short-dynamic": dict(box=True, full_border=True, width="auto"),
-        "long-boxed": dict(box=True, word_wrap=True, width=width),
-    }
-    fmt_kwargs.update(style_to_opts[style])
+    formatter = _create_formatter(
+        colored=colored,
+        style=style,
+        width=width,
+        datefmt=datefmt,
+        log_colors=log_colors,
+        extra_format=extra_format,
+    )
 
-    if not colored and style is not None:
-        fmt_kwargs["log_colors"] = {k: "white" for k in colors}
-        fmt_kwargs["colored"] = False
-
-    formatter = LogFormatter(**fmt_kwargs)  # type: ignore[arg-type]
-
-    if name in _loggers:
-        _loggers[name].handlers.clear()
-
-    prev_class = logging.getLoggerClass()
-    logging.setLoggerClass(_FastLogger)
-    logger = logging.getLogger(name)
-    logging.setLoggerClass(prev_class)
-
-    if not isinstance(logger, _FastLogger):
-        logger.__class__ = _FastLogger  # type: ignore[assignment]
-
-    if not capture_caller_info:
-        import types
-        logger.findCaller = types.MethodType(_no_caller_info, logger)  # type: ignore[method-assign]
-
-    logger.setLevel(logging.DEBUG)
-    logger.handlers.clear()
-    logger.propagate = False
+    logger = _configure_logger_instance(
+        name=name, capture_caller_info=capture_caller_info
+    )
 
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
