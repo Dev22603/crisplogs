@@ -29,7 +29,9 @@ class TestCleanFileHandler:
         assert "File test message" in content
 
     def test_strips_ansi_from_file(self, tmp_log, capsys):
-        logger = setup_logging(colored=True, file=tmp_log, level="INFO", name="ansi-strip")
+        logger = setup_logging(
+            colored=True, file=tmp_log, level="INFO", name="ansi-strip"
+        )
         logger.info("Colored message")
         for h in logger.handlers:
             h.flush() if hasattr(h, "flush") else None
@@ -58,6 +60,7 @@ class TestCleanFileHandler:
         bad_path = "/nonexistent/deep/nested/file.log"
         # On Windows the path would be different; just use a path we know fails
         import platform
+
         if platform.system() == "Windows":
             bad_path = "Z:\\nonexistent\\deep\\nested\\file.log"
         # Creating a handler with a bad path should raise OSError at open time,
@@ -71,6 +74,7 @@ class TestCleanFileHandler:
             handler = CleanFileHandler(bad_path)
             handler.setFormatter(fmt)
             import logging
+
             record = logging.LogRecord("t", logging.INFO, "", 0, "msg", (), None)
             # Should not raise
             handler.emit(record)
@@ -89,6 +93,7 @@ class TestCleanFileHandlerDirect:
         handler.setFormatter(fmt)
 
         import logging
+
         record = logging.LogRecord("t", logging.INFO, "/app/x.py", 1, "hello", (), None)
         handler.emit(record)
         handler.flush()
