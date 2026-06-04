@@ -96,15 +96,15 @@ class TestShortFixedBox:
     def test_left_border_structure(self):
         fmt = LogFormatter(**{**BASE, "box": True, "width": 80})
         lines = fmt.format(make_record()).split("\n")
-        assert lines[0].startswith("┌")
+        assert lines[0].startswith("\u256d")  # ╭
         assert lines[1].startswith("│ ")
-        assert lines[-1].startswith("└")
+        assert lines[-1].startswith("\u2570")  # ╰
 
     def test_no_right_corner(self):
         fmt = LogFormatter(**{**BASE, "box": True, "width": 80})
         lines = fmt.format(make_record()).split("\n")
-        assert not lines[0].endswith("┐")
-        assert not lines[-1].endswith("┘")
+        assert not lines[0].endswith("\u256e")  # ╮
+        assert not lines[-1].endswith("\u256f")  # ╯
 
     def test_extra_ignored(self):
         # short-fixed box does NOT append extras
@@ -117,9 +117,9 @@ class TestShortDynamicBox:
     def test_full_border_structure(self):
         fmt = LogFormatter(**{**BASE, "box": True, "full_border": True, "width": "auto"})
         lines = fmt.format(make_record()).split("\n")
-        assert lines[0].startswith("┌") and lines[0].endswith("┐")
+        assert lines[0].startswith("\u256d") and lines[0].endswith("\u256e")  # ╭ ╮
         assert lines[1].startswith("│ ") and lines[1].endswith(" │")
-        assert lines[-1].startswith("└") and lines[-1].endswith("┘")
+        assert lines[-1].startswith("\u2570") and lines[-1].endswith("\u256f")  # ╰ ╯
 
     def test_auto_width_fits_content(self):
         fmt = LogFormatter(**{**BASE, "box": True, "full_border": True, "width": "auto"})
@@ -132,9 +132,9 @@ class TestLongBoxedFormatter:
     def test_left_border_structure(self):
         fmt = LogFormatter(**{**BASE, "box": True, "word_wrap": True, "width": 80})
         lines = fmt.format(make_record()).split("\n")
-        assert lines[0].startswith("┌")
+        assert lines[0].startswith("\u256d")  # ╭
         assert lines[1].startswith("│ ")
-        assert lines[-1].startswith("└")
+        assert lines[-1].startswith("\u2570")  # ╰
 
     def test_word_wraps_long_message(self):
         fmt = LogFormatter(**{**BASE, "box": True, "word_wrap": True, "width": 40})

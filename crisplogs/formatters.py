@@ -20,10 +20,10 @@ _VALID_EXTRA_FORMATS = ("inline", "json", "pretty")
 
 # Box-drawing characters as constants so f-string expressions stay backslash-free
 # (backslashes in f-string expressions are a SyntaxError on Python 3.8-3.11).
-_TL = "\u250c"  # top-left
-_TR = "\u2510"  # top-right
-_BL = "\u2514"  # bottom-left
-_BR = "\u2518"  # bottom-right
+_TL = "\u256d"  # top-left (rounded)
+_TR = "\u256e"  # top-right (rounded)
+_BL = "\u2570"  # bottom-left (rounded)
+_BR = "\u256f"  # bottom-right (rounded)
 _H = "\u2500"   # horizontal
 _V = "\u2502"   # vertical
 
