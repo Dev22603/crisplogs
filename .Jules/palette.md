@@ -1,0 +1,3 @@
+## 2026-06-16 - Rounded Terminal UI Boxes
+**Learning:** Terminal box-drawing interfaces can feel harsh and outdated when using sharp square corners. Using rounded corner characters (\u256d, \u256e, \u2570, \u256f) provides a much softer, modern, and pleasant aesthetic for log borders.
+**Action:** Always prefer rounded corner box-drawing characters over square ones when building terminal UIs to give them a modern, welcoming feel.
