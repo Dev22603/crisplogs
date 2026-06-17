@@ -9,8 +9,13 @@ from crisplogs.formatters import LogFormatter
 from .conftest import make_record
 
 BASE = dict(
-    log_colors={"INFO": "green", "ERROR": "red", "WARNING": "yellow",
-                "DEBUG": "cyan", "CRITICAL": "bold_red"},
+    log_colors={
+        "INFO": "green",
+        "ERROR": "red",
+        "WARNING": "yellow",
+        "DEBUG": "cyan",
+        "CRITICAL": "bold_red",
+    },
     colored=False,
     datefmt="%H:%M:%S",
 )
@@ -96,15 +101,15 @@ class TestShortFixedBox:
     def test_left_border_structure(self):
         fmt = LogFormatter(**{**BASE, "box": True, "width": 80})
         lines = fmt.format(make_record()).split("\n")
-        assert lines[0].startswith("┌")
+        assert lines[0].startswith("╭")
         assert lines[1].startswith("│ ")
-        assert lines[-1].startswith("└")
+        assert lines[-1].startswith("╰")
 
     def test_no_right_corner(self):
         fmt = LogFormatter(**{**BASE, "box": True, "width": 80})
         lines = fmt.format(make_record()).split("\n")
-        assert not lines[0].endswith("┐")
-        assert not lines[-1].endswith("┘")
+        assert not lines[0].endswith("╮")
+        assert not lines[-1].endswith("╯")
 
     def test_extra_ignored(self):
         # short-fixed box does NOT append extras
@@ -115,14 +120,18 @@ class TestShortFixedBox:
 
 class TestShortDynamicBox:
     def test_full_border_structure(self):
-        fmt = LogFormatter(**{**BASE, "box": True, "full_border": True, "width": "auto"})
+        fmt = LogFormatter(
+            **{**BASE, "box": True, "full_border": True, "width": "auto"}
+        )
         lines = fmt.format(make_record()).split("\n")
-        assert lines[0].startswith("┌") and lines[0].endswith("┐")
+        assert lines[0].startswith("╭") and lines[0].endswith("╮")
         assert lines[1].startswith("│ ") and lines[1].endswith(" │")
-        assert lines[-1].startswith("└") and lines[-1].endswith("┘")
+        assert lines[-1].startswith("╰") and lines[-1].endswith("╯")
 
     def test_auto_width_fits_content(self):
-        fmt = LogFormatter(**{**BASE, "box": True, "full_border": True, "width": "auto"})
+        fmt = LogFormatter(
+            **{**BASE, "box": True, "full_border": True, "width": "auto"}
+        )
         lines = fmt.format(make_record()).split("\n")
         # top and bottom should have same length
         assert len(lines[0]) == len(lines[-1])
@@ -132,9 +141,9 @@ class TestLongBoxedFormatter:
     def test_left_border_structure(self):
         fmt = LogFormatter(**{**BASE, "box": True, "word_wrap": True, "width": 80})
         lines = fmt.format(make_record()).split("\n")
-        assert lines[0].startswith("┌")
+        assert lines[0].startswith("╭")
         assert lines[1].startswith("│ ")
-        assert lines[-1].startswith("└")
+        assert lines[-1].startswith("╰")
 
     def test_word_wraps_long_message(self):
         fmt = LogFormatter(**{**BASE, "box": True, "word_wrap": True, "width": 40})
