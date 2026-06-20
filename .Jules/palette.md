@@ -1,0 +1,3 @@
+## 2026-06-20 - Rounded Box Characters
+**Learning:** Terminal logging UI can feel rigid and technical. Using rounded box characters (`\u256d`, `\u256e`, `\u2570`, `\u256f`) instead of traditional square ones (`\u250c`, `\u2510`, `\u2514`, `\u2518`) provides a softer, more modern interface that feels less imposing to users while maintaining clear structural boundaries for log messages.
+**Action:** When designing terminal interfaces or boxed outputs, prefer rounded corner glyphs to create a more welcoming and modern UX, rather than defaulting to traditional square DOS-era box-drawing characters.
