@@ -1,0 +1,3 @@
+## 2025-05-18 - Rounded Corners for Box Styles
+**Learning:** Hard angles (square corners) in terminal UI boxes can feel rigid and slightly dated. Softening these lines with rounded unicode corner characters (`╭`, `╮`, `╰`, `╯`) creates a friendlier, more modern, and visually appealing user experience in the terminal, without impacting functionality or line counts.
+**Action:** Use rounded unicode corner characters by default for box decorations in terminal output instead of sharp square corners.
