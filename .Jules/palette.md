@@ -1,0 +1,3 @@
+## 2025-02-28 - Terminal Output Palette Enhancements
+**Learning:** Hard-angled (square) box drawing characters in terminal logs can feel rigid or legacy. Small aesthetic tweaks, such as switching to rounded box corners, can significantly soften and modernize the visual presentation of terminal output without changing functionality.
+**Action:** Default to using rounded corner characters (`\u256d`, `\u256e`, `\u2570`, `\u256f` / `╭`, `╮`, `╰`, `╯`) when constructing boxed interfaces or UI components in terminal logs to create a more pleasant and modern UX.
