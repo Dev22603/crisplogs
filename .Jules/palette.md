@@ -1,0 +1,3 @@
+## 2026-06-25 - Rounded Box Corners in Terminal UI
+**Learning:** Terminal user interfaces (TUI) often feel rigid and outdated due to the use of default square box-drawing characters (e.g., ┌, ┐, └, ┘). Users perceive rounded box characters (e.g., ╭, ╮, ╰, ╯) as softer, more modern, and less stark, matching the aesthetic of modern graphical UIs. This simple typographical change significantly improves the visual pleasantness and "feel" of terminal output without any performance overhead or new dependencies.
+**Action:** When designing or refactoring boxed layouts in terminal tools, prefer rounded box-drawing characters (`\u256d`, `\u256e`, `\u2570`, `\u256f`) over standard square corners to provide a more polished and modern user experience.
