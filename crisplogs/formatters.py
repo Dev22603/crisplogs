@@ -20,12 +20,12 @@ _VALID_EXTRA_FORMATS = ("inline", "json", "pretty")
 
 # Box-drawing characters as constants so f-string expressions stay backslash-free
 # (backslashes in f-string expressions are a SyntaxError on Python 3.8-3.11).
-_TL = "\u250c"  # top-left
-_TR = "\u2510"  # top-right
-_BL = "\u2514"  # bottom-left
-_BR = "\u2518"  # bottom-right
-_H = "\u2500"   # horizontal
-_V = "\u2502"   # vertical
+_TL = "\u256d"  # rounded top-left
+_TR = "\u256e"  # rounded top-right
+_BL = "\u2570"  # rounded bottom-left
+_BR = "\u256f"  # rounded bottom-right
+_H = "\u2500"  # horizontal
+_V = "\u2502"  # vertical
 
 
 class LogFormatter(logging.Formatter):
@@ -190,19 +190,36 @@ class LogFormatter(logging.Formatter):
             f"{message}"
         )
 
-    _RESERVED: frozenset = frozenset({
-        "name", "msg", "args", "levelname", "levelno", "pathname",
-        "filename", "module", "exc_info", "exc_text", "stack_info",
-        "lineno", "funcName", "created", "msecs", "relativeCreated",
-        "thread", "threadName", "processName", "process", "message",
-        "asctime", "taskName",
-    })
+    _RESERVED: frozenset = frozenset(
+        {
+            "name",
+            "msg",
+            "args",
+            "levelname",
+            "levelno",
+            "pathname",
+            "filename",
+            "module",
+            "exc_info",
+            "exc_text",
+            "stack_info",
+            "lineno",
+            "funcName",
+            "created",
+            "msecs",
+            "relativeCreated",
+            "thread",
+            "threadName",
+            "processName",
+            "process",
+            "message",
+            "asctime",
+            "taskName",
+        }
+    )
 
     def _extract_extra(self, record: logging.LogRecord) -> Optional[Dict[str, Any]]:
-        extras = {
-            k: v for k, v in record.__dict__.items()
-            if k not in self._RESERVED
-        }
+        extras = {k: v for k, v in record.__dict__.items() if k not in self._RESERVED}
         return extras if extras else None
 
     def format(self, record: logging.LogRecord) -> str:  # noqa: A003
