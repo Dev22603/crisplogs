@@ -1,0 +1,3 @@
+## 2025-09-08 - Use rounded box characters for a softer, more modern UI
+**Learning:** Hard angles and sharp corners in UI elements can sometimes feel rigid or dated. In text-based interfaces, using rounded box-drawing characters (e.g., `╭`, `╮`, `╰`, `╯`) instead of the traditional square ones (`┌`, `┐`, `└`, `┘`) provides a more visually appealing, modern, and friendly aesthetic without compromising structural integrity or alignment.
+**Action:** When designing or refactoring boxed components, default to rounded corners where supported, as it softens the overall presentation and enhances the perceived visual quality.
