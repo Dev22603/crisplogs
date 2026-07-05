@@ -1,0 +1,3 @@
+## 2026-07-05 - Softened terminal box styles with rounded corners
+**Learning:** Terminal user interfaces often feel harsh when using traditional sharp square box-drawing characters (`\u250c`, `\u2510`, `\u2514`, `\u2518`). Switching to rounded corners (`\u256d`, `\u256e`, `\u2570`, `\u256f`) significantly softens the UI and provides a more modern, friendly visual experience for CLI logs without losing any structure.
+**Action:** Always prefer rounded box-drawing characters in CLI designs to create a softer visual style, similar to standard UI component border-radius in web applications.
