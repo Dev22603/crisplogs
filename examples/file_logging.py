@@ -26,6 +26,7 @@ print(f"\nLog file written to: {os.path.abspath(LOG_FILE)}")
 
 # Close handlers before reading/deleting (required on Windows)
 from crisplogs import remove_logger
+
 remove_logger("file-demo")
 
 print("File contents (no ANSI codes):")

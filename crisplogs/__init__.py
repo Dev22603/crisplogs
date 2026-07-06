@@ -85,7 +85,9 @@ class _FastLogger(logging.Logger):
     """Logger that optionally skips expensive caller-info stack-frame capture."""
 
 
-def _no_caller_info(self: logging.Logger, stack_info: bool = False, stacklevel: int = 1):
+def _no_caller_info(
+    self: logging.Logger, stack_info: bool = False, stacklevel: int = 1
+):
     return "<unknown>", 0, "<unknown>", None
 
 
@@ -184,7 +186,9 @@ def setup_logging(
             f"{', '.join(repr(s) for s in _VALID_EXTRA_FORMATS)}; "
             f"got {extra_format!r}"
         )
-    if width != "auto" and (not isinstance(width, int) or isinstance(width, bool) or width <= 0):
+    if width != "auto" and (
+        not isinstance(width, int) or isinstance(width, bool) or width <= 0
+    ):
         raise InvalidWidthError(
             f"width must be a positive int or 'auto'; got {width!r}"
         )
@@ -227,6 +231,7 @@ def setup_logging(
 
     if not capture_caller_info:
         import types
+
         logger.findCaller = types.MethodType(_no_caller_info, logger)  # type: ignore[method-assign]
 
     logger.setLevel(logging.DEBUG)
