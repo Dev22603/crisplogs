@@ -13,7 +13,9 @@ class TestStripAnsi:
         assert strip_ansi("Hello World") == "Hello World"
 
     def test_removes_multiple_codes(self):
-        assert strip_ansi("\x1b[1;31mError\x1b[0m: \x1b[33mwarn\x1b[0m") == "Error: warn"
+        assert (
+            strip_ansi("\x1b[1;31mError\x1b[0m: \x1b[33mwarn\x1b[0m") == "Error: warn"
+        )
 
     def test_empty_string(self):
         assert strip_ansi("") == ""

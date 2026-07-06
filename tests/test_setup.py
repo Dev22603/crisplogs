@@ -48,22 +48,22 @@ class TestSetupLogging:
         logger = setup_logging(style="short-fixed")
         logger.info("boxed")
         captured = capsys.readouterr()
-        assert "\u250c" in captured.out
-        assert "\u2514" in captured.out
+        assert "\u256d" in captured.out
+        assert "\u2570" in captured.out
 
     def test_style_short_dynamic(self, capsys):
         logger = setup_logging(style="short-dynamic")
         logger.info("dynamic")
         captured = capsys.readouterr()
-        assert "\u250c" in captured.out
-        assert "\u2510" in captured.out
+        assert "\u256d" in captured.out
+        assert "\u256e" in captured.out
 
     def test_style_long_boxed(self, capsys):
         logger = setup_logging(style="long-boxed")
         logger.info("long boxed")
         captured = capsys.readouterr()
-        assert "\u250c" in captured.out
-        assert "\u2514" in captured.out
+        assert "\u256d" in captured.out
+        assert "\u2570" in captured.out
 
     def test_level_filtering(self, capsys):
         logger = setup_logging(level="WARNING")
@@ -127,7 +127,9 @@ class TestValidation:
             setup_logging(style="boxed")  # type: ignore[arg-type]
 
     def test_invalid_extra_format_raises(self):
-        with pytest.raises(InvalidExtraFormatError, match="extra_format must be one of"):
+        with pytest.raises(
+            InvalidExtraFormatError, match="extra_format must be one of"
+        ):
             setup_logging(extra_format="xml")  # type: ignore[arg-type]
 
     def test_invalid_width_raises(self):
